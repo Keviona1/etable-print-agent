@@ -1,8 +1,4 @@
 package com.etable.printagent;
-
-
-
-// --- SPRING AND STANDARD JAVA IMPORTS ---
 import com.github.anastaciocintra.escpos.EscPos;
 import com.github.anastaciocintra.escpos.Style;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
@@ -26,7 +22,7 @@ import java.util.concurrent.ExecutionException;
 public class StompPrintBridge {
 
     private static String WEBSOCKET_URI;
-    private static String[] SECTORS_TO_SUBSCRIBE; // Changed from single String
+    private static String[] SECTORS_TO_SUBSCRIBE;
     private static String PRINTER_NAME;
 
     public static void main(String[] args) {
@@ -40,7 +36,6 @@ public class StompPrintBridge {
             return;
         }
 
-        // The URL should NOT have the query parameter
         WEBSOCKET_URI = wsUriBase;
         SECTORS_TO_SUBSCRIBE = sectorsConfig.split(",");
 
@@ -48,17 +43,12 @@ public class StompPrintBridge {
         WebSocketStompClient stompClient = new WebSocketStompClient(client);
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
 
-        // --- THIS IS THE FINAL, CORRECT WAY TO CONNECT ---
-        // 1. Create WebSocketHttpHeaders for the INITIAL handshake.
         WebSocketHttpHeaders handshakeHeaders = new WebSocketHttpHeaders();
         handshakeHeaders.add("printer-token", secretToken);
 
-        // 2. STOMP headers can be empty for this authentication method.
         StompHeaders connectHeaders = new StompHeaders();
 
-        // 3. Create the session handler.
         StompSessionHandler sessionHandler = new MyStompSessionHandler();
-        // ----------------------------------------------------
 
         System.out.println("--- e-Table Print Agent v1.0 (Multi-Sector) ---");
         System.out.println("Attempting to connect to: " + WEBSOCKET_URI);
@@ -66,10 +56,10 @@ public class StompPrintBridge {
         System.out.println("Listening for sectors: " + String.join(", ", SECTORS_TO_SUBSCRIBE));
 
         try {
-            // We now pass the handshakeHeaders in the second argument. This is the fix.
+
             stompClient.connect(
                     WEBSOCKET_URI,
-                    handshakeHeaders, // <-- THE TOKEN IS NOW IN THE CORRECT PLACE
+                    handshakeHeaders,
                     connectHeaders,
                     sessionHandler
             ).get();
@@ -91,9 +81,8 @@ public class StompPrintBridge {
         @Override
         public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
             System.out.println("Session established. Subscribing to topics...");
-            // --- CHANGE 4: Loop through each sector and subscribe to its topic ---
             for (String sector : SECTORS_TO_SUBSCRIBE) {
-                String trimmedSector = sector.trim(); // Remove any extra spaces
+                String trimmedSector = sector.trim();
                 if (!trimmedSector.isEmpty()) {
                     String topic = "/topic/print-jobs/" + trimmedSector.toLowerCase();
                     session.subscribe(topic, this);
@@ -118,7 +107,6 @@ public class StompPrintBridge {
         }
     }
 
-    // --- HELPER METHOD TO FIND THE PRINTER (CORRECT FOR v4.1.0) ---
     private static Optional<PrintService> findPrintService(String printerName) {
         PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
         return Arrays.stream(printServices)
@@ -145,20 +133,17 @@ public class StompPrintBridge {
             EscPos escpos = new EscPos(outputStream);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy");
 
-            // --- THIS BLOCK IS NOW SAFER ---
-            // 1. Safely handle a null table name
             String tableName = (job.getTableNumber() != null && !job.getTableNumber().trim().isEmpty()) ? job.getTableNumber() : "New Order";
 
             escpos.getStyle()
                     .setBold(true)
                     .setFontSize(Style.FontSize._2, Style.FontSize._2);
-            escpos.writeLF(tableName); // Prints "New Order" if table name is null
+            escpos.writeLF(tableName);
             escpos.getStyle().reset();
 
-            // 2. Safely handle a null order ID
             String orderIdText = (job.getOrderId() != null) ? "#" + job.getOrderId() : "";
             escpos.writeLF("Order " + orderIdText);
-            // --- END OF SAFE BLOCK ---
+
 
             escpos.writeLF(LocalDateTime.now().format(formatter));
             escpos.feed(1).writeLF("----------------------------------------");
@@ -166,7 +151,6 @@ public class StompPrintBridge {
             for (OrderItemDTO item : job.getItems()) {
                 escpos.getStyle().setBold(true);
 
-                // 3. Safely handle a null article name
                 String articleName = (item.getArticleName() != null) ? item.getArticleName() : "Unknown Article";
                 escpos.writeLF(String.format("%dx %s", item.getQuantity(), articleName));
                 escpos.getStyle().setBold(false);

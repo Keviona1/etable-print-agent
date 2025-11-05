@@ -20,7 +20,6 @@
     </repositories>
 
     <dependencies>
-        <!-- STOMP client support from Spring Framework -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-websocket</artifactId>
@@ -32,31 +31,27 @@
             <version>5.3.34</version>
         </dependency>
 
-        <!-- WebSocket client implementation -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-websocket</artifactId>
             <version>9.0.88</version>
         </dependency>
 
-        <!-- JSON parsing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.17.0</version>
         </dependency>
 
-        <!-- For printing to ESC/POS thermal printers -->
         <dependency>
             <groupId>com.github.anastaciocintra</groupId>
             <artifactId>escpos-coffee</artifactId>
-            <version>4.1.0</version>  <!-- <<< THE FINAL, VERIFIED VERSION -->
+            <version>4.1.0</version>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Plugin to create a single, runnable JAR with all dependencies -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
