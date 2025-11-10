@@ -133,34 +133,53 @@ public class StompPrintBridge {
             EscPos escpos = new EscPos(outputStream);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy");
 
-            String tableName = (job.getTableNumber() != null && !job.getTableNumber().trim().isEmpty()) ? job.getTableNumber() : "New Order";
 
-            escpos.getStyle()
-                    .setBold(true)
-                    .setFontSize(Style.FontSize._2, Style.FontSize._2);
+            String sectorName = "ORDER";
+            if (job.getItems() != null && !job.getItems().isEmpty()) {
+                String firstItemSector = job.getItems().get(0).getSectorType();
+                if (firstItemSector != null) {
+                    sectorName = firstItemSector;
+                }
+            }
+
+            escpos.getStyle().setJustification(Style.Justification.Center);
+            escpos.getStyle().setBold(true);
+            escpos.writeLF("--- " + sectorName.toUpperCase() + " ---");
+            escpos.getStyle().reset();
+            escpos.feed(1);
+
+            String tableName = (job.getTableNumber() != null && !job.getTableNumber().trim().isEmpty()) ? job.getTableNumber() : "TAKE-AWAY";
+            escpos.getStyle().setFontSize(Style.FontSize._3, Style.FontSize._3).setBold(true);
             escpos.writeLF(tableName);
             escpos.getStyle().reset();
+            escpos.feed(1);
+
+            escpos.getStyle().setJustification(Style.Justification.Left_Default);
 
             String orderIdText = (job.getOrderId() != null) ? "#" + job.getOrderId() : "";
-            escpos.writeLF("Order " + orderIdText);
+            escpos.writeLF("Order: " + orderIdText);
+            escpos.writeLF("Time:  " + LocalDateTime.now().format(formatter));
 
-
-            escpos.writeLF(LocalDateTime.now().format(formatter));
-            escpos.feed(1).writeLF("----------------------------------------");
+            escpos.writeLF("========================================");
+            escpos.feed(1);
 
             for (OrderItemDTO item : job.getItems()) {
-                escpos.getStyle().setBold(true);
+                escpos.getStyle().setFontSize(Style.FontSize._2, Style.FontSize._1).setBold(true);
 
                 String articleName = (item.getArticleName() != null) ? item.getArticleName() : "Unknown Article";
                 escpos.writeLF(String.format("%dx %s", item.getQuantity(), articleName));
-                escpos.getStyle().setBold(false);
 
+                escpos.getStyle().reset();
                 if (item.getNote() != null && !item.getNote().trim().isEmpty()) {
-                    escpos.writeLF("  >> " + item.getNote());
+                    escpos.writeLF("  >> " + item.getNote().toUpperCase());
                 }
+                escpos.feed(1);
             }
-            escpos.feed(1).writeLF("----------------------------------------");
-            escpos.feed(4).cut(EscPos.CutMode.FULL);
+
+            escpos.getStyle().reset();
+            escpos.writeLF("========================================");
+            escpos.feed(5);
+            escpos.cut(EscPos.CutMode.FULL);
             escpos.close();
 
             System.out.println("Successfully sent job to printer: " + PRINTER_NAME);
